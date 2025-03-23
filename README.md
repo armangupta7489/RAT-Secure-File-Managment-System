@@ -117,3 +117,20 @@ Test with different user roles.
 
 Deploy on a secure Linux server.
 
+Team Contributions
+Arman: Authentication, sorting, and viewing files
+
+Rajat: File operations (CRUD), additional utilities
+
+Taman: Security features, logging, and error handling
+
+Features
+User authentication (login system)
+
+File operations: create, delete, rename, edit, and search
+
+View and sort file content
+
+Additional utilities: copy, move, append, and clear content
+
+Logging and error handling
