@@ -1,1 +1,135 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <time.h>
+#include <unistd.h>
 
+#define MAX_FILENAME 256  
+#define MAX_CONTENT 1024  
+#define PASSWORD "admin123" 
+
+void show_menu();
+void authenticate();
+void list_files();
+void create_file();
+void delete_file();
+void rename_file();
+
+void edit_file();
+void search_file();
+void view_file();
+void sort_file();
+void copy_file();
+
+void move_file();
+void append_to_file();
+void check_file_size();
+void check_last_modified();
+void clear_file();
+
+
+int main() {
+    authenticate();
+    int choice;
+    while (1) {
+        show_menu();
+        printf("Enter your choice: ");
+        if (scanf("%d", &choice) != 1) {
+            printf("Invalid input! Exiting...\n");
+            exit(1);
+        }
+        getchar();  // Clear input buffer
+
+        switch (choice) {
+            case 1: list_files(); break;
+            case 2: create_file(); break;
+            case 3: delete_file(); break;
+            case 4: rename_file(); break;
+            case 5: edit_file(); break;
+            case 6: search_file(); break;
+            case 7: view_file(); break;
+            case 8: sort_file(); break;
+            case 9: copy_file(); break;
+            case 10: move_file(); break;
+            case 11: append_to_file(); break;
+            case 12: check_file_size(); break;
+            case 13: check_last_modified(); break;
+            case 14: clear_file(); break;
+            case 0: printf("Exiting program.\n"); exit(0);
+            default: printf("Invalid choice, please try again.\n");
+        }
+    }
+    return 0;
+}
+void authenticate() {
+    char input_password[50];
+    printf("Enter password: ");
+    scanf("%s", input_password);
+    if (strcmp(input_password, PASSWORD) != 0) {
+        printf("Access Denied! Exiting program.\n");
+        exit(1);
+    }
+    printf("Access Granted!\n");
+}
+
+void show_menu() {
+    printf("\n==== Secure File Management System ====\n");
+    printf("1. List all files\n");
+    printf("2. Create a new file\n");
+    printf("3. Delete a file\n");
+    printf("4. Rename a file\n");
+    printf("5. Edit file content\n");
+    printf("6. Search for a file\n");
+    printf("7. View file content\n");
+    printf("8. Sort file content\n");
+    printf("9. Copy file\n");
+    printf("10. Move file\n");
+    printf("11. Append content to a file\n");
+    printf("12. Check file size\n");
+    printf("13. Check last modified time\n");
+    printf("14. Clear file content\n");
+    printf("0. Exit\n");
+}
+
+void list_files() {
+    printf("Listing all files:\n");
+    system("ls -lh");  // Shows file sizes and permissions
+}
+
+void create_file() {
+    char filename[MAX_FILENAME];
+    printf("Enter filename to create: ");
+    scanf("%s", filename);
+    FILE *fp = fopen(filename, "w");
+    if (fp) {
+        fclose(fp);
+        printf("File '%s' created successfully!\n", filename);
+    } else {
+        printf("Error creating file!\n");
+    }
+}
+
+void delete_file() {
+    char filename[MAX_FILENAME];
+    printf("Enter filename to delete: ");
+    scanf("%s", filename);
+    if (remove(filename) == 0) {
+        printf("File '%s' deleted successfully!\n", filename);
+    } else {
+        printf("Error: File not found!\n");
+    }
+}
+
+void rename_file() {
+    char oldname[MAX_FILENAME], newname[MAX_FILENAME];
+    printf("Enter current filename: ");
+    scanf("%s", oldname);
+    printf("Enter new filename: ");
+    scanf("%s", newname);
+    if (rename(oldname, newname) == 0) {
+        printf("File renamed successfully!\n");
+    } else {
+        printf("Error renaming file!\n");
+    }
+}
