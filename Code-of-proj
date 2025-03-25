@@ -133,3 +133,67 @@ void rename_file() {
         printf("Error renaming file!\n");
     }
 }
+#taman
+void edit_file() {
+    char filename[MAX_FILENAME];
+    printf("Enter filename to edit: ");
+    scanf("%s", filename);
+    getchar();
+    printf("Opening file in nano editor...\n");
+    char command[MAX_FILENAME + 10];
+    snprintf(command, sizeof(command), "nano \"%s\"", filename);
+    system(command);
+}
+
+void search_file() {
+    char filename[MAX_FILENAME];
+    printf("Enter filename to search: ");
+    scanf("%s", filename);
+    if (access(filename, F_OK) != -1) {
+        printf("File '%s' found!\n", filename);
+    } else {
+        printf("File not found!\n");
+    }
+}
+
+void view_file() {
+    char filename[MAX_FILENAME];
+    printf("Enter filename to view: ");
+    scanf("%s", filename);
+    FILE *fp = fopen(filename, "r");
+    if (!fp) {
+        printf("File not found!\n");
+        return;
+    }
+    char ch;
+    while ((ch = fgetc(fp)) != EOF) {
+        putchar(ch);
+    }
+    fclose(fp);
+    printf("\n");
+}
+
+void sort_file() {
+    char filename[MAX_FILENAME];
+    printf("Enter filename to sort: ");
+    scanf("%s", filename);
+
+    char command[MAX_FILENAME * 2];  // Increased buffer size
+    snprintf(command, sizeof(command), "sort \"%s\" -o \"%s\"", filename, filename);
+
+    if (system(command) == 0) {
+        printf("File sorted successfully!\n");
+    } else {
+        printf("Error sorting file!\n");
+    }
+}
+void copy_file() {
+    char src[MAX_FILENAME], dest[MAX_FILENAME];
+    printf("Enter source filename: ");
+    scanf("%s", src);
+    printf("Enter destination filename: ");
+    scanf("%s", dest);
+    char command[MAX_FILENAME * 2];
+    snprintf(command, sizeof(command), "cp \"%s\" \"%s\"", src, dest);
+    system(command);
+}
