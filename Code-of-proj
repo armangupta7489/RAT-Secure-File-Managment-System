@@ -197,3 +197,68 @@ void copy_file() {
     snprintf(command, sizeof(command), "cp \"%s\" \"%s\"", src, dest);
     system(command);
 }
+#rajat
+void move_file() {
+    char src[MAX_FILENAME], dest[MAX_FILENAME];
+    printf("Enter source filename: ");
+    scanf("%s", src);
+    printf("Enter destination filename: ");
+    scanf("%s", dest);
+    char command[MAX_FILENAME * 2];
+    snprintf(command, sizeof(command), "mv \"%s\" \"%s\"", src, dest);
+    system(command);
+}
+
+void append_to_file() {
+    char filename[MAX_FILENAME], content[MAX_CONTENT];
+    printf("Enter filename: ");
+    scanf("%s", filename);
+    printf("Enter content to append: ");
+    getchar();
+    fgets(content, MAX_CONTENT, stdin);
+    FILE *fp = fopen(filename, "a");
+    if (fp) {
+        fprintf(fp, "%s", content);
+        fclose(fp);
+        printf("Content appended successfully!\n");
+    } else {
+        printf("Error opening file!\n");
+    }
+}
+
+void check_file_size() {
+    char filename[MAX_FILENAME];
+    printf("Enter filename: ");
+    scanf("%s", filename);
+    struct stat st;
+    if (stat(filename, &st) == 0) {
+        printf("File size: %ld bytes\n", st.st_size);
+    } else {
+        printf("Error getting file size!\n");
+    }
+}
+
+void check_last_modified() {
+    char filename[MAX_FILENAME];
+    printf("Enter filename: ");
+    scanf("%s", filename);
+    struct stat st;
+    if (stat(filename, &st) == 0) {
+        printf("Last modified: %s", ctime(&st.st_mtime));
+    } else {
+        printf("Error getting file modification time!\n");
+    }
+}
+
+void clear_file() {
+    char filename[MAX_FILENAME];
+    printf("Enter filename to clear: ");
+    scanf("%s", filename);
+    FILE *fp = fopen(filename, "w");
+    if (fp) {
+        fclose(fp);
+        printf("File '%s' cleared successfully!\n", filename);
+    } else {
+        printf("Error clearing file!\n");
+    }
+}
