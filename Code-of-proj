@@ -517,3 +517,4 @@ void search_content() {
     fclose(fp);
     log_operation("Search content", filename);
 }
+###
