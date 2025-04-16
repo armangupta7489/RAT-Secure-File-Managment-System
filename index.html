@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure File Management System</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Secure File Management System</h1>
+        </header>
+        <main>
+            <div id="auth-section">
+                <h2>Login</h2>
+                <input type="text" id="username" placeholder="Username">
+                <input type="password" id="password" placeholder="Password">
+                <input type="text" id="mfa-code" placeholder="MFA Code">
+                <button onclick="login()">Login</button>
+                <p id="auth-message"></p>
+            </div>
+            <div id="file-section" style="display: none;">
+                <h2>File Management</h2>
+                <div class="file-upload">
+                    <input type="file" id="file-input" multiple>
+                    <button onclick="uploadFile()">Upload File</button>
+                </div>
+                <div class="file-operations">
+                    <input type="text" id="search-input" placeholder="Search files...">
+                    <button onclick="searchFile()">Search</button>
+                    <button onclick="showMenu()">Menu</button>
+                    <button onclick="createFile()">Create File</button>
+                    <button onclick="sortFiles()">Sort Files</button>
+                </div>
+                <div id="file-list"></div>
+                <div id="file-actions">
+                    <button onclick="logout()">Logout</button>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.0.4/pako.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
