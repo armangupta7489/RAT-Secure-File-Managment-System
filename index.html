@@ -1,15 +1,119 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Secure File Management System</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>Raksha - Secure File Management System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: url('https://images.unsplash.com/photo-1550751827-4bd374c3f58b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80') no-repeat center center fixed, #1a1a1a;
+            background-size: cover;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            transition: background-image 1s ease-in-out;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.2);
+            width: 800px;
+            max-width: 95%;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: #901909;
+            margin: 0;
+        }
+
+        h2 {
+            color: #333;
+            margin-top: 0;
+        }
+
+        input {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+            color: white;
+            font-weight: bold;
+            transition: background-color 0.2s;
+            background-color: #007bff;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        .file-upload, .file-operations {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .file-operations input {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        #file-list {
+            margin-top: 20px;
+        }
+
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        #auth-message {
+            color: #dc3545;
+            margin-top: 10px;
+        }
+
+        .directory {
+            font-weight: bold;
+            color: #1a73e8;
+        }
+
+        #current-path {
+            margin-bottom: 10px;
+            font-weight: bold;
+            color: #333;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>Secure File Management System</h1>
+            <h1>Raksha - The Secure File Management System</h1>
         </header>
         <main>
             <div id="auth-section">
@@ -22,6 +126,7 @@
             </div>
             <div id="file-section" style="display: none;">
                 <h2>File Management</h2>
+                <div id="current-path">Current Path: /</div>
                 <div class="file-upload">
                     <input type="file" id="file-input" multiple>
                     <button onclick="uploadFile()">Upload File</button>
@@ -31,6 +136,9 @@
                     <button onclick="searchFile()">Search</button>
                     <button onclick="showMenu()">Menu</button>
                     <button onclick="createFile()">Create File</button>
+                    <button onclick="createDirectory()">Create Directory</button>
+                    <button onclick="goUp()">Go Up</button>
+                    <button onclick="goHome()">Home</button>
                     <button onclick="sortFiles()">Sort Files</button>
                 </div>
                 <div id="file-list"></div>
@@ -40,8 +148,29 @@
             </div>
         </main>
     </div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.0.4/pako.min.js"></script>
+    <script>
+        // Function to change background image periodically
+        function changeBackground() {
+            const keywords = ['technology', 'secure', 'file-management', 'cybersecurity', 'data'];
+            const randomKeyword = keywords[Math.floor(Math.random() * keywords.length)];
+            const unsplashUrl = `https://source.unsplash.com/random/1920x1080/?${randomKeyword}`;
+            console.log(`Attempting to load background: ${unsplashUrl}`);
+
+            const img = new Image();
+            img.src = unsplashUrl;
+            img.onload = () => {
+                document.body.style.backgroundImage = `url('${unsplashUrl}'), #1a1a1a`;
+                console.log(`Background updated to: ${unsplashUrl}`);
+            };
+            img.onerror = () => {
+                console.error(`Failed to load image: ${unsplashUrl}`);
+                document.body.style.backgroundImage = `url('https://images.unsplash.com/photo-1550751827-4bd374c3f58b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80'), #1a1a1a`;
+            };
+        }
+
+        setInterval(changeBackground, 60000);
+        changeBackground();
+    </script>
     <script src="script.js"></script>
 </body>
 </html>
