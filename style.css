@@ -1,6 +1,8 @@
+
 body {
     font-family: Arial, sans-serif;
-    background-color: #f0f2f5;
+    background: url('https://images.unsplash.com/photo-1516321310764-8081e57d3b66?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80') no-repeat center center fixed;
+    background-size: cover;
     margin: 0;
     padding: 0;
     display: flex;
@@ -10,10 +12,10 @@ body {
 }
 
 .container {
-    background: white;
+    background: rgba(255, 255, 255, 0.9);
     padding: 20px;
     border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    box-shadow: 0 0 10px rgba(0,0,0,0.2);
     width: 800px;
     max-width: 95%;
 }
@@ -24,7 +26,7 @@ header {
 }
 
 h1 {
-    color: #1a73e8;
+    color: #922011;
     margin: 0;
 }
 
@@ -44,18 +46,47 @@ input {
 }
 
 button {
-    background-color: #1a73e8;
-    color: white;
     padding: 10px 15px;
     border: none;
     border-radius: 4px;
     cursor: pointer;
     margin: 5px;
+    color: white;
+    font-weight: bold;
+    transition: background-color 0.2s;
 }
 
 button:hover {
-    background-color: #1557b0;
+    opacity: 0.9;
 }
+
+/* Specific button styles */
+button.login-btn { background-color: #007bff; }
+button.upload-btn { background-color: #dc3545; }
+button.search-btn { background-color: #007bff; }
+button.menu-btn { background-color: #007bff; }
+button.create-file-btn { background-color: #007bff; }
+button.create-dir-btn { background-color: #007bff; }
+button.go-up-btn { background-color: #007bff; }
+button.go-home-btn { background-color: #007bff; }
+button.sort-btn { background-color: #007bff; }
+button.logout-btn { background-color: #007bff; }
+
+.file-item button { background-color: #007bff; }
+.file-item button.view-btn { background-color: #007bff; }
+.file-item button.edit-btn { background-color: #007bff; }
+.file-item button.download-btn { background-color: #007bff; }
+.file-item button.delete-btn { background-color: #007bff; }
+.file-item button.rename-btn { background-color: #007bff; }
+.file-item button.copy-btn { background-color: #007bff; }
+.file-item button.move-btn { background-color: #007bff; }
+.file-item button.append-btn { background-color: #007bff; }
+.file-item button.size-btn { background-color: #007bff; }
+.file-item button.modified-btn { background-color: #007bff; }
+.file-item button.clear-btn { background-color: #007bff; }
+.file-item button.backup-btn { background-color: #007bff; }
+.file-item button.search-content-btn { background-color: #007bff; }
+.file-item button.open-btn { background-color: #007bff; }
 
 .file-upload, .file-operations {
     display: flex;
@@ -81,15 +112,18 @@ button:hover {
     border-bottom: 1px solid #eee;
 }
 
-.file-item button {
-    background-color: #dc3545;
-}
-
-.file-item button:hover {
-    background-color: #b02a37;
-}
-
 #auth-message {
     color: #dc3545;
     margin-top: 10px;
+}
+
+.directory {
+    font-weight: bold;
+    color: #1a73e8;
+}
+
+#current-path {
+    margin-bottom: 10px;
+    font-weight: bold;
+    color: #333;
 }
