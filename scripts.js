@@ -1,3 +1,4 @@
+
 const users = {
     admin: { password: "admin123", role: "admin", mfa: "123456", permissions: { read: true, write: true, delete: true } },
     user: { password: "user123", role: "user", mfa: "654321", permissions: { read: true, write: true, delete: true } }
@@ -5,16 +6,16 @@ const users = {
 
 let currentUser = null;
 let operationLog = [];
-const AES_KEY = "xai-secure-file-system-256-bit-key-12345"; // 32 bytes for AES-256
+let currentPath = "/";
 
 function showMenu() {
-    alert("Available Operations:\n- List Files\n- Create File\n- Delete File\n- Rename File\n- Edit File\n- Search File\n- View File\n- Sort Files\n- Copy File\n- Move File\n- Append to File\n- Check File Size\n- Check Last Modified\n- Clear File\n- Encrypt File\n- Decrypt File\n- Compress File\n- Decompress File\n- Change Permissions\n- Backup File\n- Search Content");
+    alert("Available Operations:\n- List Files\n- Create File\n- Create Directory\n- Delete File\n- Rename File\n- Edit File\n- Search File\n- View File\n- Sort Files\n- Copy File\n- Move File\n- Append to File\n- Check File Size\n- Check Last Modified\n- Clear File\n- Backup File\n- Search Content");
 }
 
 function login() {
-    const username = document.getElementById("username").value;
+    const username = document.getElementById("username").value.trim();
     const password = document.getElementById("password").value;
-    const mfaCode = document.getElementById("mfa-code").value;
+    const mfaCode = document.getElementById("mfa-code").value.trim();
     const message = document.getElementById("auth-message");
 
     if (users[username] && users[username].password === password && users[username].mfa === mfaCode) {
@@ -23,6 +24,7 @@ function login() {
         document.getElementById("file-section").style.display = "block";
         loadFiles();
         logOperation("login", username);
+        message.textContent = "";
     } else {
         message.textContent = "Invalid credentials or MFA code";
     }
@@ -36,12 +38,17 @@ function logOperation(operation, filename) {
 function logout() {
     logOperation("logout", currentUser);
     currentUser = null;
+    currentPath = "/";
     document.getElementById("auth-section").style.display = "block";
     document.getElementById("file-section").style.display = "none";
     document.getElementById("auth-message").textContent = "";
     document.getElementById("username").value = "";
     document.getElementById("password").value = "";
     document.getElementById("mfa-code").value = "";
+}
+
+function getPath(filename) {
+    return currentPath === "/" ? `/${filename}` : `${currentPath}/${filename}`;
 }
 
 function uploadFile() {
@@ -51,37 +58,12 @@ function uploadFile() {
     for (let file of files) {
         const reader = new FileReader();
         reader.onload = function(e) {
-            const encryptedData = encryptData(e.target.result);
-            saveFile(file.name, encryptedData);
+            const content = e.target.result;
+            saveFile(getPath(file.name), content);
             logOperation("upload", file.name);
             loadFiles();
         };
         reader.readAsText(file);
-    }
-}
-
-function encryptData(data) {
-    return CryptoJS.AES.encrypt(data, AES_KEY).toString();
-}
-
-function decryptData(data) {
-    try {
-        const bytes = CryptoJS.AES.decrypt(data, AES_KEY);
-        return bytes.toString(CryptoJS.enc.Utf8);
-    } catch (e) {
-        return "";
-    }
-}
-
-function compressData(data) {
-    return pako.gzip(data, { to: 'string' });
-}
-
-function decompressData(data) {
-    try {
-        return pako.ungzip(data, { to: 'string' });
-    } catch (e) {
-        return data;
     }
 }
 
@@ -94,51 +76,106 @@ function saveFile(filename, data) {
         permissions: users[currentUser].permissions,
         size: data.length,
         lastModified: new Date().toISOString(),
-        isEncrypted: true,
-        isCompressed: false
+        isDirectory: false
     };
     localStorage.setItem("files", JSON.stringify(files));
 }
 
+function createDirectory() {
+    if (!users[currentUser].permissions.write) {
+        alert("Permission denied");
+        return;
+    }
+    const dirname = prompt("Enter directory name:");
+    if (dirname) {
+        const dirPath = getPath(dirname);
+        let files = JSON.parse(localStorage.getItem("files") || "{}");
+        if (files[dirPath]) {
+            alert("Directory or file already exists");
+            return;
+        }
+        files[dirPath] = {
+            data: "",
+            owner: currentUser,
+            role: users[currentUser].role,
+            permissions: users[currentUser].permissions,
+            size: 0,
+            lastModified: new Date().toISOString(),
+            isDirectory: true
+        };
+        localStorage.setItem("files", JSON.stringify(files));
+        logOperation("create_directory", dirPath);
+        loadFiles();
+    }
+}
+
+function goUp() {
+    if (currentPath === "/") return;
+    const pathParts = currentPath.split("/").filter(p => p);
+    pathParts.pop();
+    currentPath = pathParts.length ? "/" + pathParts.join("/") : "/";
+    loadFiles();
+}
+
+function goHome() {
+    currentPath = "/";
+    loadFiles();
+}
+
+function enterDirectory(filename) {
+    const dirPath = getPath(filename);
+    const files = JSON.parse(localStorage.getItem("files") || "{}");
+    if (files[dirPath] && files[dirPath].isDirectory) {
+        currentPath = dirPath;
+        loadFiles();
+    } else {
+        alert("Not a directory");
+    }
+}
+
 function loadFiles() {
     const fileList = document.getElementById("file-list");
+    const pathDisplay = document.getElementById("current-path");
     fileList.innerHTML = "";
+    pathDisplay.textContent = `Current Path: ${currentPath}`;
     const files = JSON.parse(localStorage.getItem("files") || "{}");
+    const pathPrefix = currentPath === "/" ? "/" : currentPath + "/";
 
     for (let filename in files) {
-        if (users[currentUser].permissions.read && (users[currentUser].role === "admin" || files[filename].owner === currentUser)) {
+        if (filename.startsWith(pathPrefix) && filename !== currentPath &&
+            filename.split("/").length === pathPrefix.split("/").length &&
+            users[currentUser].permissions.read && (users[currentUser].role === "admin" || files[filename].owner === currentUser)) {
+            const shortName = filename.split("/").pop();
             const fileItem = document.createElement("div");
-            fileItem.className = "file-item";
+            fileItem.className = `file-item ${files[filename].isDirectory ? 'directory' : ''}`;
+            const buttons = files[filename].isDirectory
+                ? `
+                    <button class="open-btn" onclick="enterDirectory('${shortName}')">Open</button>
+                    <button class="delete-btn" onclick="deleteFile('${filename}')">Delete</button>
+                    <button class="rename-btn" onclick="renameFile('${filename}', '${shortName}')">Rename</button>
+                `
+                : `
+                    <button class="view-btn" onclick="viewFile('${filename}')">View</button>
+                    <button class="edit-btn" onclick="editFile('${filename}')">Edit</button>
+                    <button class="download-btn" onclick="downloadFile('${filename}')">Download</button>
+                    <button class="delete-btn" onclick="deleteFile('${filename}')">Delete</button>
+                    <button class="rename-btn" onclick="renameFile('${filename}', '${shortName}')">Rename</button>
+                    <button class="copy-btn" onclick="copyFile('${filename}', '${shortName}')">Copy</button>
+                    <button class="move-btn" onclick="moveFile('${filename}', '${shortName}')">Move</button>
+                    <button class="append-btn" onclick="appendToFile('${filename}')">Append</button>
+                    <button class="size-btn" onclick="checkFileSize('${filename}')">Size</button>
+                    <button class="modified-btn" onclick="checkLastModified('${filename}')">Modified</button>
+                    <button class="clear-btn" onclick="clearFile('${filename}')">Clear</button>
+                    <button class="backup-btn" onclick="backupFile('${filename}', '${shortName}')">Backup</button>
+                    <button class="search-content-btn" onclick="searchContent('${filename}')">Search Content</button>
+                `;
             fileItem.innerHTML = `
-                <span>${filename}</span>
-                <div>
-                    <button onclick="viewFile('${filename}')">View</button>
-                    <button onclick="editFile('${filename}')">Edit</button>
-                    <button onclick="downloadFile('${filename}')">Download</button>
-                    <button onclick="deleteFile('${filename}')">Delete</button>
-                    <button onclick="renameFile('${filename}')">Rename</button>
-                    <button onclick="copyFile('${filename}')">Copy</button>
-                    <button onclick="moveFile('${filename}')">Move</button>
-                    <button onclick="appendToFile('${filename}')">Append</button>
-                    <button onclick="checkFileSize('${filename}')">Size</button>
-                    <button onclick="checkLastModified('${filename}')">Modified</button>
-                    <button onclick="clearFile('${filename}')">Clear</button>
-                    
-                    <button onclick="compressFile('${filename}')">Compress</button>
-                    <button onclick="decompressFile('${filename}')">Decompress</button>
-                    
-                    <button onclick="backupFile('${filename}')">Backup</button>
-                    <button onclick="searchContent('${filename}')">Search Content</button>
-                </div>
+                <span>${files[filename].isDirectory ? '[DIR] ' : ''}${shortName}</span>
+                <div>${buttons}</div>
             `;
             fileList.appendChild(fileItem);
         }
     }
-}
-
-function listFiles() {
-    loadFiles();
-    logOperation("list_files", "");
 }
 
 function createFile() {
@@ -148,8 +185,14 @@ function createFile() {
     }
     const filename = prompt("Enter new filename:");
     if (filename) {
-        saveFile(filename, encryptData(""));
-        logOperation("create_file", filename);
+        const filePath = getPath(filename);
+        let files = JSON.parse(localStorage.getItem("files") || "{}");
+        if (files[filePath]) {
+            alert("File or directory already exists");
+            return;
+        }
+        saveFile(filePath, "");
+        logOperation("create_file", filePath);
         loadFiles();
     }
 }
@@ -161,6 +204,14 @@ function deleteFile(filename) {
     }
     let files = JSON.parse(localStorage.getItem("files") || "{}");
     if (files[filename] && (users[currentUser].role === "admin" || files[filename].owner === currentUser)) {
+        if (files[filename].isDirectory) {
+            for (let f in files) {
+                if (f.startsWith(filename + "/")) {
+                    alert("Cannot delete non-empty directory");
+                    return;
+                }
+            }
+        }
         delete files[filename];
         localStorage.setItem("files", JSON.stringify(files));
         logOperation("delete_file", filename);
@@ -168,18 +219,34 @@ function deleteFile(filename) {
     }
 }
 
-function renameFile(filename) {
+function renameFile(filename, shortName) {
     if (!users[currentUser].permissions.write) {
         alert("Permission denied");
         return;
     }
-    const newName = prompt("Enter new filename:", filename);
-    if (newName && newName !== filename) {
+    const newShortName = prompt("Enter new name:", shortName);
+    if (newShortName && newShortName !== shortName) {
         let files = JSON.parse(localStorage.getItem("files") || "{}");
-        files[newName] = files[filename];
+        const newFilename = filename.replace(shortName, newShortName);
+        if (files[newFilename]) {
+            alert("Name already exists");
+            return;
+        }
+        files[newFilename] = files[filename];
         delete files[filename];
+        if (files[newFilename].isDirectory) {
+            const oldPrefix = filename + "/";
+            const newPrefix = newFilename + "/";
+            for (let f in files) {
+                if (f.startsWith(oldPrefix)) {
+                    const newF = newPrefix + f.substring(oldPrefix.length);
+                    files[newF] = files[f];
+                    delete files[f];
+                }
+            }
+        }
         localStorage.setItem("files", JSON.stringify(files));
-        logOperation("rename_file", `${filename} to ${newName}`);
+        logOperation("rename_file", `${filename} to ${newFilename}`);
         loadFiles();
     }
 }
@@ -190,10 +257,16 @@ function editFile(filename) {
         return;
     }
     let files = JSON.parse(localStorage.getItem("files") || "{}");
-    const content = prompt("Edit file content:", files[filename].isEncrypted ? decryptData(files[filename].data) : files[filename].data);
-    if (content !== null) {
-        files[filename].data = files[filename].isEncrypted ? encryptData(content) : content;
+    if (files[filename].isDirectory) {
+        alert("Cannot edit a directory");
+        return;
+    }
+    const content = files[filename].data;
+    const newContent = prompt("Edit file content:", content);
+    if (newContent !== null) {
+        files[filename].data = newContent;
         files[filename].lastModified = new Date().toISOString();
+        files[filename].size = newContent.length;
         localStorage.setItem("files", JSON.stringify(files));
         logOperation("edit_file", filename);
         loadFiles();
@@ -205,20 +278,39 @@ function searchFile() {
     const fileList = document.getElementById("file-list");
     fileList.innerHTML = "";
     const files = JSON.parse(localStorage.getItem("files") || "{}");
+    const pathPrefix = currentPath === "/" ? "/" : currentPath + "/";
 
     for (let filename in files) {
-        if (filename.toLowerCase().includes(searchTerm) && users[currentUser].permissions.read &&
-            (users[currentUser].role === "admin" || files[filename].owner === currentUser)) {
+        const shortName = filename.split("/").pop();
+        if (shortName.toLowerCase().includes(searchTerm) && filename.startsWith(pathPrefix) &&
+            filename.split("/").length === pathPrefix.split("/").length &&
+            users[currentUser].permissions.read && (users[currentUser].role === "admin" || files[filename].owner === currentUser)) {
             const fileItem = document.createElement("div");
-            fileItem.className = "file-item";
+            fileItem.className = `file-item ${files[filename].isDirectory ? 'directory' : ''}`;
+            const buttons = files[filename].isDirectory
+                ? `
+                    <button class="open-btn" onclick="enterDirectory('${shortName}')">Open</button>
+                    <button class="delete-btn" onclick="deleteFile('${filename}')">Delete</button>
+                    <button class="rename-btn" onclick="renameFile('${filename}', '${shortName}')">Rename</button>
+                `
+                : `
+                    <button class="view-btn" onclick="viewFile('${filename}')">View</button>
+                    <button class="edit-btn" onclick="editFile('${filename}')">Edit</button>
+                    <button class="download-btn" onclick="downloadFile('${filename}')">Download</button>
+                    <button class="delete-btn" onclick="deleteFile('${filename}')">Delete</button>
+                    <button class="rename-btn" onclick="renameFile('${filename}', '${shortName}')">Rename</button>
+                    <button class="copy-btn" onclick="copyFile('${filename}', '${shortName}')">Copy</button>
+                    <button class="move-btn" onclick="moveFile('${filename}', '${shortName}')">Move</button>
+                    <button class="append-btn" onclick="appendToFile('${filename}')">Append</button>
+                    <button class="size-btn" onclick="checkFileSize('${filename}')">Size</button>
+                    <button class="modified-btn" onclick="checkLastModified('${filename}')">Modified</button>
+                    <button class="clear-btn" onclick="clearFile('${filename}')">Clear</button>
+                    <button class="backup-btn" onclick="backupFile('${filename}', '${shortName}')">Backup</button>
+                    <button class="search-content-btn" onclick="searchContent('${filename}')">Search Content</button>
+                `;
             fileItem.innerHTML = `
-                <span>${filename}</span>
-                <div>
-                    <button onclick="viewFile('${filename}')">View</button>
-                    <button onclick="editFile('${filename}')">Edit</button>
-                    <button onclick="downloadFile('${filename}')">Download</button>
-                    <button onclick="deleteFile('${filename}')">Delete</button>
-                </div>
+                <span>${files[filename].isDirectory ? '[DIR] ' : ''}${shortName}</span>
+                <div>${buttons}</div>
             `;
             fileList.appendChild(fileItem);
         }
@@ -228,8 +320,12 @@ function searchFile() {
 
 function viewFile(filename) {
     const files = JSON.parse(localStorage.getItem("files") || "{}");
+    if (files[filename].isDirectory) {
+        alert("Cannot view a directory");
+        return;
+    }
     if (files[filename] && users[currentUser].permissions.read) {
-        const content = files[filename].isEncrypted ? decryptData(files[filename].data) : files[filename].data;
+        const content = files[filename].data;
         alert("File Content:\n" + content);
         logOperation("view_file", filename);
     }
@@ -237,42 +333,67 @@ function viewFile(filename) {
 
 function sortFiles() {
     const files = JSON.parse(localStorage.getItem("files") || "{}");
-    const sortedFiles = Object.keys(files).sort().reduce((obj, key) => {
-        obj[key] = files[key];
-        return obj;
-    }, {});
+    const pathPrefix = currentPath === "/" ? "/" : currentPath + "/";
+    const relevantFiles = Object.keys(files)
+        .filter(f => f.startsWith(pathPrefix) && f.split("/").length === pathPrefix.split("/").length)
+        .sort()
+        .reduce((obj, key) => {
+            obj[key] = files[key];
+            return obj;
+        }, {});
+    const otherFiles = Object.keys(files)
+        .filter(f => !f.startsWith(pathPrefix) || f.split("/").length !== pathPrefix.split("/").length)
+        .reduce((obj, key) => {
+            obj[key] = files[key];
+            return obj;
+        }, {});
+    const sortedFiles = { ...otherFiles, ...relevantFiles };
     localStorage.setItem("files", JSON.stringify(sortedFiles));
     logOperation("sort_files", "");
     loadFiles();
 }
 
-function copyFile(filename) {
+function copyFile(filename, shortName) {
     if (!users[currentUser].permissions.write) {
         alert("Permission denied");
         return;
     }
-    const newName = prompt("Enter new filename for copy:", `${filename}_copy`);
-    if (newName) {
-        let files = JSON.parse(localStorage.getItem("files") || "{}");
-        files[newName] = { ...files[filename], owner: currentUser };
+    const files = JSON.parse(localStorage.getItem("files") || "{}");
+    if (files[filename].isDirectory) {
+        alert("Cannot copy a directory");
+        return;
+    }
+    const newShortName = prompt("Enter new filename for copy:", `${shortName}_copy`);
+    if (newShortName) {
+        const newFilename = getPath(newShortName);
+        if (files[newFilename]) {
+            alert("Name already exists");
+            return;
+        }
+        files[newFilename] = { ...files[filename], owner: currentUser };
         localStorage.setItem("files", JSON.stringify(files));
-        logOperation("copy_file", `${filename} to ${newName}`);
+        logOperation("copy_file", `${filename} to ${newFilename}`);
         loadFiles();
     }
 }
 
-function moveFile(filename) {
+function moveFile(filename, shortName) {
     if (!users[currentUser].permissions.write) {
         alert("Permission denied");
         return;
     }
-    const newName = prompt("Enter new filename for move:", filename);
-    if (newName && newName !== filename) {
+    const newShortName = prompt("Enter new filename for move:", shortName);
+    if (newShortName && newShortName !== shortName) {
         let files = JSON.parse(localStorage.getItem("files") || "{}");
-        files[newName] = files[filename];
+        const newFilename = getPath(newShortName);
+        if (files[newFilename]) {
+            alert("Name already exists");
+            return;
+        }
+        files[newFilename] = files[filename];
         delete files[filename];
         localStorage.setItem("files", JSON.stringify(files));
-        logOperation("move_file", `${filename} to ${newName}`);
+        logOperation("move_file", `${filename} to ${newFilename}`);
         loadFiles();
     }
 }
@@ -282,12 +403,18 @@ function appendToFile(filename) {
         alert("Permission denied");
         return;
     }
+    const files = JSON.parse(localStorage.getItem("files") || "{}");
+    if (files[filename].isDirectory) {
+        alert("Cannot append to a directory");
+        return;
+    }
     const content = prompt("Enter content to append:");
     if (content) {
-        let files = JSON.parse(localStorage.getItem("files") || "{}");
-        const currentContent = files[filename].isEncrypted ? decryptData(files[filename].data) : files[filename].data;
-        files[filename].data = files[filename].isEncrypted ? encryptData(currentContent + content) : currentContent + content;
+        const currentContent = files[filename].data;
+        const newContent = currentContent + content;
+        files[filename].data = newContent;
         files[filename].lastModified = new Date().toISOString();
+        files[filename].size = newContent.length;
         localStorage.setItem("files", JSON.stringify(files));
         logOperation("append_file", filename);
         loadFiles();
@@ -315,104 +442,32 @@ function clearFile(filename) {
         alert("Permission denied");
         return;
     }
+    const files = JSON.parse(localStorage.getItem("files") || "{}");
+    if (files[filename].isDirectory) {
+        alert("Cannot clear a directory");
+        return;
+    }
     if (confirm("Are you sure you want to clear this file?")) {
-        let files = JSON.parse(localStorage.getItem("files") || "{}");
-        files[filename].data = files[filename].isEncrypted ? encryptData("") : "";
+        files[filename].data = "";
         files[filename].lastModified = new Date().toISOString();
+        files[filename].size = 0;
         localStorage.setItem("files", JSON.stringify(files));
         logOperation("clear_file", filename);
         loadFiles();
     }
 }
 
-function encryptFile(filename) {
-    let files = JSON.parse(localStorage.getItem("files") || "{}");
-    if (files[filename] && !files[filename].isEncrypted) {
-        files[filename].data = encryptData(decryptData(files[filename].data) || files[filename].data);
-        files[filename].isEncrypted = true;
-        localStorage.setItem("files", JSON.stringify(files));
-        logOperation("encrypt_file", filename);
-        alert("File encrypted");
-        loadFiles();
-    } else {
-        alert("File already encrypted or invalid");
-    }
-}
-
-function decryptFile(filename) {
-    let files = JSON.parse(localStorage.getItem("files") || "{}");
-    if (files[filename] && files[filename].isEncrypted) {
-        const decrypted = decryptData(files[filename].data);
-        if (decrypted) {
-            files[filename].data = decrypted;
-            files[filename].isEncrypted = false;
-            localStorage.setItem("files", JSON.stringify(files));
-            logOperation("decrypt_file", filename);
-            alert("File decrypted");
-            loadFiles();
-        } else {
-            alert("Decryption failed");
-        }
-    } else {
-        alert("File not encrypted or invalid");
-    }
-}
-
-function compressFile(filename) {
-    let files = JSON.parse(localStorage.getItem("files") || "{}");
-    if (files[filename] && !files[filename].isCompressed) {
-        const content = files[filename].isEncrypted ? decryptData(files[filename].data) : files[filename].data;
-        files[filename].data = files[filename].isEncrypted ? encryptData(compressData(content)) : compressData(content);
-        files[filename].isCompressed = true;
-        files[filename].size = files[filename].data.length;
-        localStorage.setItem("files", JSON.stringify(files));
-        logOperation("compress_file", filename);
-        alert("File compressed");
-        loadFiles();
-    } else {
-        alert("File already compressed or invalid");
-    }
-}
-
-function decompressFile(filename) {
-    let files = JSON.parse(localStorage.getItem("files") || "{}");
-    if (files[filename] && files[filename].isCompressed) {
-        const content = files[filename].isEncrypted ? decryptData(files[filename].data) : files[filename].data;
-        const decompressed = decompressData(content);
-        files[filename].data = files[filename].isEncrypted ? encryptData(decompressed) : decompressed;
-        files[filename].isCompressed = false;
-        files[filename].size = files[filename].data.length;
-        localStorage.setItem("files", JSON.stringify(files));
-        logOperation("decompress_file", filename);
-        alert("File decompressed");
-        loadFiles();
-    } else {
-        alert("File not compressed or invalid");
-    }
-}
-
-/*function changePermissions(filename) {
-    if (users[currentUser].role !== "admin") {
-        alert("Permission denied");
-        return;
-    }
-    const read = confirm("Allow read?");
-    const write = confirm("Allow write?");
-    const del = confirm("Allow delete?");
-    let files = JSON.parse(localStorage.getItem("files") || "{}");
-    files[filename].permissions = { read, write, delete: del };
-    localStorage.setItem("files", JSON.stringify(files));
-    logOperation("change_permissions", filename);
-    loadFiles();
-}*/
-
-function backupFile(filename) {
+function backupFile(filename, shortName) {
     if (!users[currentUser].permissions.write) {
         alert("Permission denied");
         return;
     }
     let files = JSON.parse(localStorage.getItem("files") || "{}");
-    const backupName = `${filename}_backup_${new Date().toISOString()}`;
+    if (files[filename].isDirectory) {
+        alert("Cannot backup a directory");
+        return;
+    }
+    const backupName = getPath(`${shortName}_backup_${new Date().toISOString().replace(/[:.]/g, '-')}`);
     files[backupName] = { ...files[filename], owner: currentUser };
     localStorage.setItem("files", JSON.stringify(files));
     logOperation("backup_file", filename);
@@ -420,10 +475,14 @@ function backupFile(filename) {
 }
 
 function searchContent(filename) {
+    const files = JSON.parse(localStorage.getItem("files") || "{}");
+    if (files[filename].isDirectory) {
+        alert("Cannot search content in a directory");
+        return;
+    }
     const searchTerm = prompt("Enter content to search:");
     if (searchTerm) {
-        const files = JSON.parse(localStorage.getItem("files") || "{}");
-        const content = files[filename].isEncrypted ? decryptData(files[filename].data) : files[filename].data;
+        const content = files[filename].data;
         if (content.includes(searchTerm)) {
             alert(`Found "${searchTerm}" in ${filename}`);
         } else {
@@ -435,13 +494,30 @@ function searchContent(filename) {
 
 function downloadFile(filename) {
     const files = JSON.parse(localStorage.getItem("files") || "{}");
+    if (files[filename].isDirectory) {
+        alert("Cannot download a directory");
+        return;
+    }
     if (files[filename] && users[currentUser].permissions.read) {
-        const content = files[filename].isEncrypted ? decryptData(files[filename].data) : files[filename].data;
-        const finalContent = files[filename].isCompressed ? decompressData(content) : content;
+        const content = files[filename].data;
         const link = document.createElement("a");
-        link.href = "data:text/plain;charset=utf-8," + encodeURIComponent(finalContent);
-        link.download = filename;
+        link.href = "data:text/plain;charset=utf-8," + encodeURIComponent(content);
+        link.download = filename.split("/").pop();
         link.click();
         logOperation("download_file", filename);
     }
 }
+
+// Apply button classes on page load
+document.addEventListener("DOMContentLoaded", () => {
+    document.querySelector("#auth-section button").classList.add("login-btn");
+    document.querySelector(".file-upload button").classList.add("upload-btn");
+    document.querySelectorAll(".file-operations button")[0].classList.add("search-btn");
+    document.querySelectorAll(".file-operations button")[1].classList.add("menu-btn");
+    document.querySelectorAll(".file-operations button")[2].classList.add("create-file-btn");
+    document.querySelectorAll(".file-operations button")[3].classList.add("create-dir-btn");
+    document.querySelectorAll(".file-operations button")[4].classList.add("go-up-btn");
+    document.querySelectorAll(".file-operations button")[5].classList.add("go-home-btn");
+    document.querySelectorAll(".file-operations button")[6].classList.add("sort-btn");
+    document.querySelector(".file-actions button").classList.add("logout-btn");
+});
